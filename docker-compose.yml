@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    container_name: collabdocs_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-collabdocs}
+      POSTGRES_USER: ${DB_USER:-collabdocs_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-replace-this-password}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - collabdocs_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-collabdocs_user} -d ${DB_NAME:-collabdocs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  collabdocs_postgres_data:

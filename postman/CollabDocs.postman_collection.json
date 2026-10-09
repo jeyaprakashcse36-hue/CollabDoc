@@ -1,0 +1,564 @@
+{
+  "info": {
+    "_postman_id": "5fdc5bbe-1d12-4799-b6cd-d2a2ca031d24",
+    "name": "CollabDocs API - Import Safe (17 Requests)",
+    "description": "CollabDocs API demo collection. Set base_url to http://127.0.0.1:8000. Run requests in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Register owner",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/users/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{owner_username}}\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"{{password}}\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"Owner\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registration returns 201', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('owner_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Obtain JWT",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/token/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{owner_username}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('JWT returned', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('access_token', j.access);",
+              "pm.collectionVariables.set('refresh_token', j.refresh);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Create workspace (owner auto-admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/workspaces/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"CollabDocs Demo Workspace\",\n  \"description\": \"Workspace created by Postman.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Workspace created', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('workspace_id', j.id);",
+              "pm.test('Owner matches creator', () => pm.expect(String(j.owner)).to.eql(pm.collectionVariables.get('owner_id')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - List workspaces",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/workspaces/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Workspace list returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - List workspace members",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/workspaces/{{workspace_id}}/members/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Owner membership exists', () => { pm.response.to.have.status(200); const a=pm.response.json(); pm.expect(a.some(x => x.role === 'admin')).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Register collaborator",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/users/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{collaborator_username}}\",\n  \"email\": \"editor@example.com\",\n  \"password\": \"{{password}}\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"Editor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Collaborator registered', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('collaborator_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Add collaborator as editor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/workspaces/{{workspace_id}}/members/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user\": \"{{collaborator_id}}\",\n  \"role\": \"editor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Membership created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('membership_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Duplicate membership returns 409",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/workspaces/{{workspace_id}}/members/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user\": \"{{collaborator_id}}\",\n  \"role\": \"editor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Duplicate membership is conflict', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Create tag",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/tags/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"backend\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Tag created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('tag_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - List tags",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/tags/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Tags list returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Create document and version 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/documents/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"workspace\": \"{{workspace_id}}\",\n  \"title\": \"CollabDocs Demo Document\",\n  \"content\": \"Initial collaboration document content.\",\n  \"status\": \"draft\",\n  \"tag_ids\": [\n    \"{{tag_id}}\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Document created', () => pm.response.to.have.status(201));",
+              "const j=pm.response.json(); pm.collectionVariables.set('document_id',j.id);",
+              "pm.test('First version created', () => pm.expect(j.version_count).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Search title or content",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/documents/?search=collab"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Search returns matching document', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().some(x => x.id === pm.collectionVariables.get('document_id'))).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Filter by status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/documents/?status=draft,published"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status filter returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - Update document creates version 2",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/documents/{{document_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Updated collaboration document content.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Document updated', () => pm.response.to.have.status(200));",
+              "pm.test('Version count increments', () => pm.expect(pm.response.json().version_count).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - Get document version history",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/documents/{{document_id}}/versions/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Version history contains two versions', () => { pm.response.to.have.status(200); const a=pm.response.json(); pm.expect(a.length).to.be.at.least(2); pm.expect(a[0].version_number).to.be.greaterThan(a[1].version_number); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 - List document comments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/documents/{{document_id}}/comments/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment list returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 - Create document comment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/documents/{{document_id}}/comments/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Please review this document.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('comment_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "owner_username",
+      "value": "collabdocs_demo_owner",
+      "type": "string"
+    },
+    {
+      "key": "collaborator_username",
+      "value": "collabdocs_demo_editor",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "ChangeThisPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "owner_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "collaborator_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workspace_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "membership_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tag_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "comment_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
